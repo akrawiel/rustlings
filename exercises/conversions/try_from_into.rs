@@ -27,8 +27,6 @@ enum IntoColorError {
     IntConversion,
 }
 
-// I AM NOT DONE
-
 // Your task is to complete this implementation and return an Ok result of inner
 // type Color. You need to create an implementation for a tuple of three
 // integers, an array of three integers, and a slice of integers.
@@ -37,10 +35,37 @@ enum IntoColorError {
 // time, but the slice implementation needs to check the slice length! Also note
 // that correct RGB color values must be integers in the 0..=255 range.
 
+impl Color {
+    fn i16_to_u8(number: i16) -> Result<u8, IntoColorError> {
+        if (0..=255).contains(&number) {
+            Ok(number as u8)
+        } else {
+            Err(IntoColorError::IntConversion)
+        }
+    }
+
+    fn i16_to_u8_ref(number: &i16) -> Result<u8, IntoColorError> {
+        if (0..=255).contains(number) {
+            Ok(*number as u8)
+        } else {
+            Err(IntoColorError::IntConversion)
+        }
+    }
+}
+
 // Tuple implementation
 impl TryFrom<(i16, i16, i16)> for Color {
     type Error = IntoColorError;
     fn try_from(tuple: (i16, i16, i16)) -> Result<Self, Self::Error> {
+        let numbers = Into::<[i16; 3]>::into(tuple).map(Self::i16_to_u8);
+
+        if numbers.iter().any(|color| color.is_err()) {
+            return Err(IntoColorError::IntConversion);
+        }
+
+        let [red, green, blue] = numbers.map(|color| color.unwrap());
+
+        Ok(Color { red, green, blue })
     }
 }
 
@@ -48,6 +73,15 @@ impl TryFrom<(i16, i16, i16)> for Color {
 impl TryFrom<[i16; 3]> for Color {
     type Error = IntoColorError;
     fn try_from(arr: [i16; 3]) -> Result<Self, Self::Error> {
+        let numbers = arr.map(Self::i16_to_u8);
+
+        if numbers.iter().any(|color| color.is_err()) {
+            return Err(IntoColorError::IntConversion);
+        }
+
+        let [red, green, blue] = numbers.map(|color| color.unwrap());
+
+        Ok(Color { red, green, blue })
     }
 }
 
@@ -55,6 +89,25 @@ impl TryFrom<[i16; 3]> for Color {
 impl TryFrom<&[i16]> for Color {
     type Error = IntoColorError;
     fn try_from(slice: &[i16]) -> Result<Self, Self::Error> {
+        let numbers = slice.iter();
+
+        if numbers.len() != 3 {
+            return Err(IntoColorError::BadLen);
+        }
+
+        let mut numbers = slice.iter().map(|color| Self::i16_to_u8_ref(color));
+
+        if numbers.any(|color| color.is_err()) {
+            return Err(IntoColorError::IntConversion);
+        }
+
+        let mut numbers = slice.iter().map(|color| Self::i16_to_u8_ref(color).unwrap());
+
+        let red = numbers.next().unwrap();
+        let green = numbers.next().unwrap();
+        let blue = numbers.next().unwrap();
+
+        Ok(Color { red, green, blue })
     }
 }
 
